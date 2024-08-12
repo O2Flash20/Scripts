@@ -3,15 +3,21 @@ description = "Measures distances in the world."
 
 importLib("vectors")
 
+client.settings.addAir(4)
+
+onScreenScale = client.settings.addNamelessFloat("On Screen Information Scale", 0, 5, 1)
+decimalPoints = client.settings.addNamelessInt("Decimal Precision", 1, 10, 2)
+
+client.settings.addAir(4)
+
 p1Key = client.settings.addNamelessKeybind("Set Point 1", 74)
 p2Key = client.settings.addNamelessKeybind("Set Point 2", 75)
 clearPoints = client.settings.addNamelessKeybind("Clear Points", 77)
 
+client.settings.addAir(4)
+
 bgCol = client.settings.addNamelessColor("Text Background Color", {51, 51, 51, 255})
 textCol = client.settings.addNamelessColor("Text Color", {255, 255, 255, 255})
-
-onScreenScale = client.settings.addNamelessFloat("On Screen Information Scale", 0, 5, 1)
-decimalPoints = client.settings.addNamelessInt("Decimal Precision", 1, 10, 2)
 
 p1Set = false
 p1 = vec:new(0, 0, 0)
