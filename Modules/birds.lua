@@ -4,8 +4,6 @@
 name = "Birds"
 description = "Funny little bird guys :)"
 
--- TODO: automatically download assets
-
 importLib("vectors")
 importLib("anetwork")
 
@@ -17,7 +15,7 @@ function postInit()
         fs.mkdir("Birds")
 
         anetwork.fileget(
-            "https://raw.githubusercontent.com/OnixClient-Scripts/OnixClient_Scripts/master/Data/Birds/texture.png", "Birds/textures.png", {},
+            "https://raw.githubusercontent.com/OnixClient-Scripts/OnixClient_Scripts/master/Data/Birds/texture.png", "Birds/texture.png", {},
             function (response, error) fileDownloaded(response, error) end
         )
         anetwork.fileget(
