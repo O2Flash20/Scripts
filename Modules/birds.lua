@@ -1,38 +1,81 @@
+-- Made By O2Flash20 🙂
 ---@diagnostic disable: redundant-parameter
+
 name = "Birds"
-description = "Funny little bird guys :3 (what's wrong with me)"
+description = "Funny little bird guys :)"
 
-importLib("logger")
+-- TODO: automatically download assets
+
 importLib("vectors")
-importLib("renderThreeD")
+importLib("anetwork")
 
---[[
-pick a spot near the player, out of view, and on the ground, then spawn a bird and pick 2 points for it to fly to
-    when it's flying to it's last point, pick another point
-        if it's a certain distance away from the player, it lands and then disapears when it is next not visible
+allFilesAreLoaded = false
+loadedFiles = 0
+function postInit()
+    anetwork.Initialise(1)
+    if not fs.isdir("Birds") then
+        fs.mkdir("Birds")
 
-visibility could just be checking direction and not occlusion
+        anetwork.fileget(
+            "https://raw.githubusercontent.com/OnixClient-Scripts/OnixClient_Scripts/master/Data/Birds/texture.png", "Birds/textures.png", {},
+            function (response, error) fileDownloaded(response, error) end
+        )
+        anetwork.fileget(
+            "https://raw.githubusercontent.com/OnixClient-Scripts/OnixClient_Scripts/master/Data/Birds/body.obj", "Birds/body.obj", {},
+            function (response, error) fileDownloaded(response, error) end
+        )
+        anetwork.fileget(
+            "https://raw.githubusercontent.com/OnixClient-Scripts/OnixClient_Scripts/master/Data/Birds/wingL.obj", "Birds/wingL.obj", {},
+            function (response, error) fileDownloaded(response, error) end
+        )
+        anetwork.fileget(
+            "https://raw.githubusercontent.com/OnixClient-Scripts/OnixClient_Scripts/master/Data/Birds/wingR.obj", "Birds/wingR.obj", {},
+            function (response, error) fileDownloaded(response, error) end
+        )
+    else
+        allFilesAreLoaded = true
+        start()
+    end
+end
 
-to find a new spot to fly to:
-    pick a random 2d coordinate, height is some offset from map height
-    raycast from pos right before to that pos, if there's a collision, pick a new point to go to
+function fileDownloaded(response, error)
+    loadedFiles = loadedFiles + 1
 
-maybe have some birds that fly high in the sky in flocks and never take off or land
-]]
+    if loadedFiles == 4 then
+        allFilesAreLoaded = true
+        start()
+    end
+end
 
-MAXBIRDS = 20
+function start()
+    birdBodyMesh = gfx.objLoad("Birds/body.obj")
+    birdWingLMesh = gfx.objLoad("Birds/wingL.obj")
+    birdWingRMesh = gfx.objLoad("Birds/wingR.obj")
+end
+
+numBirds = client.settings.addNamelessInt("Number of Birds", 1, 25, 5)
+
+MAXBIRDS = numBirds.value
 TIMEPERKEYFRAME = 5
-CLOSESTSPAWNDIST = 20
-FURTHESTSPAWNDIST = 100
+CLOSESTSPAWNDIST = 10
+FURTHESTSPAWNDIST = 50
 KEYFRAMESPACING = 40
 FLYHEIGHT = 30
 MAXTURNANGLE = 90
-DISAPPEARDIST = 100
+DISAPPEARDIST = 60
 
 birds = {}
 
 function update(dt)
-    if #birds < MAXBIRDS then --pick a spot for a bird to spawn
+    if not dimension.name() == "Overworld" or not allFilesAreLoaded then return end
+
+    MAXBIRDS = numBirds.value
+
+    px, py, pz = player.pposition()
+    pYaw, pPitch = player.rotation()
+    pPos = vec:new(px, py, pz)
+
+    if #birds < MAXBIRDS and math.abs(4*dimension.time() - 2) > 1 then --pick a spot for a bird to spawn
         local offset = vec:fromAngle(1, math.random() * math.pi * 2)
         offset:setMag(math.random(CLOSESTSPAWNDIST, FURTHESTSPAWNDIST))
 
@@ -59,7 +102,6 @@ function posIsVisible(pos, camPos, radius)
     local sx, sy = gfx.worldToScreen(pos.x, pos.y, pos.z)
     if not sx or not sy then return false end
 
-    -- local pYaw, pPitch = player.rotation()
     local posTranslated = pos:copy():sub(camPos):rotateYaw(math.rad(pYaw)):rotatePitch(math.rad(-pPitch))
 
     local fovH, fovV = gfx.fov()
@@ -135,18 +177,19 @@ end
 
 t = 0
 
-function postInit()
-    birdBodyMesh = gfx.objLoad("Birds/body.obj")
-    birdWingLMesh = gfx.objLoad("Birds/wingL.obj")
-    birdWingRMesh = gfx.objLoad("Birds/wingR.obj")
-end
-
 function render3d(dt)
+    anetwork.Tick()
+
+    if not dimension.name() == "Overworld" or not allFilesAreLoaded then return end
+
     t = t + dt
 
     px, py, pz = player.pposition()
     pYaw, pPitch = player.rotation()
     pPos = vec:new(px, py, pz)
+
+    local brightness = sunBrightness(dimension.time())
+    gfx.color(brightness, brightness, brightness)
 
     for i = 1, #birds, 1 do
         local thisBird = birds[i]
@@ -235,8 +278,7 @@ function catmullRomSpline3D(points, t, alpha, tension)
 end
 
 function renderBird(position, yaw, pitch, flapStrength, roll, t)
-    -- local shakeAmount = 0.02*(flapStrength+0.5)*math.cos(t*20)
-    local shakeAmount =0
+    local shakeAmount = -0.03*flapStrength*math.sin(20*t)
     gfx.pushTransformation(
         { 3, math.rad(90), 0, 0, 1 },
         { 3, roll, 0, 1, 0 }, --apply turning roll
@@ -286,4 +328,12 @@ function renderBird(position, yaw, pitch, flapStrength, roll, t)
     )
     gfx.objRender(birdWingRMesh, "Birds/texture.png")
     gfx.popTransformation()
+end
+
+function sunBrightness(time)
+    local t = math.abs(time-0.5)
+
+    if t < 0.2 then return 90 end
+    if t > 0.3 then return 255 end
+    return (165/0.1)*(t-0.2) + 90
 end
